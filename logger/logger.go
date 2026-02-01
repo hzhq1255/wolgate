@@ -54,6 +54,7 @@ type Logger struct {
 	level      Level
 	mu         sync.Mutex
 	writer     io.Writer
+	closed     bool
 }
 
 // New creates a new logger instance.
@@ -245,9 +246,15 @@ func (l *Logger) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	if l.closed {
+		return nil
+	}
+
 	if l.file != nil {
+		l.closed = true
 		return l.file.Close()
 	}
 
+	l.closed = true
 	return nil
 }
