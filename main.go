@@ -22,8 +22,6 @@ var Version = "dev"
 
 const (
 	// Default configuration values
-	defaultListen    = "127.0.0.1:9000"
-	defaultData      = "/data/wolgate.json"
 	defaultLogFile   = "/tmp/wolgate.log"
 	defaultLogLevel  = "info"
 	defaultLogMaxSize  = 10  // MB
@@ -221,7 +219,7 @@ func runWake(args []string) {
 	cfg, err := loadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
-		cfg = defaultConfig()
+		cfg = config.DefaultConfig()
 	}
 
 	// Apply command-line overrides
@@ -267,82 +265,6 @@ func runWake(args []string) {
 }
 
 // loadConfig loads the configuration file.
-func loadConfig() (*Config, error) {
-	if configFile == "" {
-		return defaultConfig(), nil
-	}
-
-	// Load config using the config package
-	cfg, err := config.Load(configFile)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert config.Config to our Config
-	return &Config{
-		Server: ServerConfig{
-			Listen: cfg.Server.Listen,
-			Data:   cfg.Server.Data,
-		},
-		Wake: WakeConfig{
-			Iface:     cfg.Wake.Iface,
-			Broadcast: cfg.Wake.Broadcast,
-		},
-		Log: LogConfig{
-			File:       cfg.Log.File,
-			Level:      cfg.Log.Level,
-			MaxSize:    cfg.Log.MaxSize,
-			MaxBackups: cfg.Log.MaxBackups,
-			MaxAge:     cfg.Log.MaxAge,
-		},
-	}, nil
-}
-
-// defaultConfig returns a default configuration.
-func defaultConfig() *Config {
-	return &Config{
-		Server: ServerConfig{
-			Listen: defaultListen,
-			Data:   defaultData,
-		},
-		Wake: WakeConfig{
-			Iface:     "",
-			Broadcast: "255.255.255.255",
-		},
-		Log: LogConfig{
-			File:       defaultLogFile,
-			Level:      defaultLogLevel,
-			MaxSize:    defaultLogMaxSize,
-			MaxBackups: defaultLogMaxBackups,
-			MaxAge:     defaultLogMaxAge,
-		},
-	}
-}
-
-// Config represents the application configuration.
-type Config struct {
-	Server ServerConfig
-	Wake   WakeConfig
-	Log    LogConfig
-}
-
-// ServerConfig holds server configuration.
-type ServerConfig struct {
-	Listen string
-	Data   string
-}
-
-// WakeConfig holds WOL configuration.
-type WakeConfig struct {
-	Iface     string
-	Broadcast string
-}
-
-// LogConfig holds logging configuration.
-type LogConfig struct {
-	File       string
-	Level      string
-	MaxSize    int
-	MaxBackups int
-	MaxAge     int
+func loadConfig() (*config.Config, error) {
+	return config.Load(configFile)
 }

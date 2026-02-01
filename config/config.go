@@ -6,15 +6,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
-)
 
-// Device represents a wake-on-LAN device.
-type Device struct {
-	Name  string `json:"name"`
-	MAC   string `json:"mac"`
-	IP    string `json:"ip,omitempty"`
-	Group string `json:"group,omitempty"`
-}
+	"github.com/hzhq1255/wolgate/store"
+)
 
 // ServerConfig holds server configuration.
 type ServerConfig struct {
@@ -39,10 +33,10 @@ type LogConfig struct {
 
 // Config holds the complete configuration.
 type Config struct {
-	Server  ServerConfig `json:"server"`
-	Wake    WakeConfig   `json:"wake"`
-	Log     LogConfig    `json:"log"`
-	Devices []Device     `json:"devices"`
+	Server  ServerConfig   `json:"server"`
+	Wake    WakeConfig     `json:"wake"`
+	Log     LogConfig      `json:"log"`
+	Devices []store.Device `json:"devices"`
 }
 
 // DefaultConfig returns a configuration with default values.
@@ -63,7 +57,7 @@ func DefaultConfig() *Config {
 			MaxBackups: 3,
 			MaxAge:     7,
 		},
-		Devices: []Device{},
+		Devices: []store.Device{},
 	}
 }
 
@@ -132,7 +126,7 @@ func applyDefaults(cfg *Config) {
 	}
 
 	if cfg.Devices == nil {
-		cfg.Devices = []Device{}
+		cfg.Devices = []store.Device{}
 	}
 }
 
