@@ -42,12 +42,6 @@ func (h *Handler) handleImportGet(w http.ResponseWriter) {
 	// Convert to API format
 	result := make([]ARPEntry, 0, len(entries))
 	for _, entry := range entries {
-		// Skip entries that already exist in our store
-		if _, exists := h.store.GetByMAC(entry.MAC); exists != nil {
-			// Device already exists, skip or mark as existing
-			// For now, we include it and let the frontend decide
-		}
-
 		result = append(result, ARPEntry{
 			IP:     entry.IP,
 			MAC:    entry.MAC,
@@ -74,6 +68,7 @@ func (h *Handler) handleImportPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	successCount := 0
+	skippedCount := 0
 	for _, device := range req.Devices {
 		// Validate MAC
 		if device.MAC == "" {
@@ -81,7 +76,8 @@ func (h *Handler) handleImportPost(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Skip if already exists
-		if _, exists := h.store.GetByMAC(device.MAC); exists != nil {
+		if _, err := h.store.GetByMAC(device.MAC); err == nil {
+			skippedCount++
 			continue
 		}
 
@@ -97,13 +93,19 @@ func (h *Handler) handleImportPost(w http.ResponseWriter, r *http.Request) {
 			IP:   device.IP,
 		}
 
-		// Add device (ignore errors for individual devices)
-		_ = h.store.Add(newDevice)
-		successCount++
+		// Add device
+		if err := h.store.Add(newDevice); err == nil {
+			successCount++
+		}
+	}
+
+	message := fmt.Sprintf("Imported %d devices", successCount)
+	if skippedCount > 0 {
+		message += fmt.Sprintf(", skipped %d (already exist)", skippedCount)
 	}
 
 	h.respond(w, Response{
-		Success: true,
-		Message: fmt.Sprintf("Imported %d devices", successCount),
+		Success: successCount > 0,
+		Message: message,
 	})
 }

@@ -124,14 +124,17 @@ func isValidEntry(entry Entry) bool {
 
 // GetLocalEntries returns ARP entries for local network devices.
 // This filters out entries for the loopback interface and incomplete entries.
+// Also deduplicates entries by MAC address (keeps first occurrence).
 func GetLocalEntries() ([]Entry, error) {
 	entries, err := Parse()
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter for local interfaces only
+	// Use map to deduplicate by MAC address
+	seenMACs := make(map[string]bool)
 	var localEntries []Entry
+
 	for _, entry := range entries {
 		// Skip loopback
 		if entry.Device == "lo" {
@@ -142,6 +145,13 @@ func GetLocalEntries() ([]Entry, error) {
 		if entry.Device == "" {
 			continue
 		}
+
+		// Skip duplicate MAC addresses
+		macLower := strings.ToLower(entry.MAC)
+		if seenMACs[macLower] {
+			continue
+		}
+		seenMACs[macLower] = true
 
 		localEntries = append(localEntries, entry)
 	}
