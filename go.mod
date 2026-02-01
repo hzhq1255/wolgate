@@ -1,3 +1,3 @@
 module github.com/hzhq1255/wolgate
 
-go 1.25.6
+go 1.21
