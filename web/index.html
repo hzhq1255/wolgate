@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOL Gate - 设备管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #2c3e50;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .toolbar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .device-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .device-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+
+        .device-item:hover {
+            background: #f8f9fa;
+        }
+
+        .device-item:last-child {
+            border-bottom: none;
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .device-details {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        .device-group {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #ecf0f1;
+            border-radius: 12px;
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-left: 8px;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #34495e;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: #95a5a6;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.success {
+            background: #27ae60;
+        }
+
+        .toast.error {
+            background: #e74c3c;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .device-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .device-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ WOL Gate</h1>
+            <button class="btn btn-primary" onclick="showAddModal()">+ 添加设备</button>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <label>分组:</label>
+                <select id="groupFilter" onchange="loadDevices()">
+                    <option value="">全部</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" onclick="showImportModal()">从 ARP 导入</button>
+        </div>
+
+        <div class="device-list" id="deviceList">
+            <div class="empty-state">
+                <p>加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑设备模态框 -->
+    <div class="modal" id="deviceModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">添加设备</div>
+            <form id="deviceForm" onsubmit="saveDevice(event)">
+                <div class="form-group">
+                    <label>设备名称 *</label>
+                    <input type="text" id="deviceName" required placeholder="例如：台式机">
+                </div>
+                <div class="form-group">
+                    <label>MAC 地址 *</label>
+                    <input type="text" id="deviceMAC" required placeholder="AA:BB:CC:DD:EE:FF">
+                </div>
+                <div class="form-group">
+                    <label>IP 地址</label>
+                    <input type="text" id="deviceIP" placeholder="192.168.1.100">
+                </div>
+                <div class="form-group">
+                    <label>分组</label>
+                    <input type="text" id="deviceGroup" placeholder="例如：办公">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('deviceModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ARP 导入模态框 -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">从 ARP 表导入</div>
+            <div id="arpDeviceList" style="max-height: 400px; overflow-y: auto;">
+                <p>加载中...</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('importModal')">取消</button>
+                <button type="button" class="btn btn-primary" onclick="importSelectedDevices()">导入选中</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = {
+            list: '/api/list',
+            add: '/api/add',
+            delete: '/api/delete',
+            wake: '/api/wake',
+            import: '/api/import'
+        };
+
+        let currentDevices = [];
+        let selectedARPDevices = new Set();
+
+        async function loadDevices() {
+            const groupFilter = document.getElementById('groupFilter').value;
+            try {
+                const response = await fetch(API.list);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDevices = data.data || [];
+                    renderDevices();
+                    updateGroupFilter();
+                } else {
+                    showToast(data.error || '加载失败', 'error');
+                }
+            } catch (error) {
+                showToast('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        function renderDevices() {
+            const container = document.getElementById('deviceList');
+            const groupFilter = document.getElementById('groupFilter').value;
+
+            let filteredDevices = currentDevices;
+            if (groupFilter) {
+                filteredDevices = currentDevices.filter(d => d.group === groupFilter);
+            }
+
+            if (filteredDevices.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>暂无设备</p>
+                        <button class="btn btn-primary" onclick="showAddModal()" style="margin-top: 16px;">
+                            添加第一个设备
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredDevices.map(device => `
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">
+                            ${escapeHtml(device.name)}
+                            ${device.group ? `<span class="device-group">${escapeHtml(device.group)}</span>` : ''}
+                        </div>
+                        <div class="device-details">
+                            MAC: ${escapeHtml(device.mac.toUpperCase())}
+                            ${device.ip ? ` | IP: ${escapeHtml(device.ip)}` : ''}
+                        </div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="btn btn-success" onclick="wakeDevice('${device.mac}')">唤醒</button>
+                        <button class="btn btn-secondary" onclick="editDevice('${device.mac}')">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteDevice('${device.mac}')">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateGroupFilter() {
+            const select = document.getElementById('groupFilter');
+            const currentValue = select.value;
+            const groups = [...new Set(currentDevices.map(d => d.group).filter(g => g))];
+
+            select.innerHTML = '<option value="">全部</option>' +
+                groups.map(g => `<option value="${escapeHtml(g)}" ${g === currentValue ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('');
+        }
+
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = '添加设备';
+            document.getElementById('deviceForm').reset();
+            document.getElementById('deviceModal').classList.add('active');
+        }
+
+        function editDevice(mac) {
+            const device = currentDevices.find(d => d.mac === mac);
+            if (!device) return;
+
+            document.getElementById('modalTitle').textContent = '编辑设备';
+            document.getElementById('deviceName').value = device.name;
+            document.getElementById('deviceMAC').value = device.mac;
+            document.getElementById('deviceMAC').disabled = true;
+            document.getElementById('deviceIP').value = device.ip || '';
+            document.getElementById('deviceGroup').value = device.group || '';
+            document.getElementById('deviceModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            if (modalId === 'deviceModal') {
+                document.getElementById('deviceMAC').disabled = false;
+            }
+        }
+
+        async function saveDevice(event) {
+            event.preventDefault();
+
+            const device = {
+                name: document.getElementById('deviceName').value,
+                mac: document.getElementById('deviceMAC').value.toLowerCase(),
+                ip: document.getElementById('deviceIP').value || '',
+                group: document.getElementById('deviceGroup').value || ''
+            };
+
+            try {
+                const response = await fetch(API.add, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(device)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('设备已保存', 'success');
+                    closeModal('deviceModal');
+                    loadDevices();
+                } else {
+                    showToast(data.error || '保存失败', 'error');
+                }
+            } catch (error) {
+                showToast('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteDevice(mac) {
+            if (!confirm('确定要删除这个设备吗？')) return;
+
+            try {
+                const response = await fetch(API.delete, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mac })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('设备已删除', 'success');
+                    loadDevices();
+                } else {
+                    showToast(data.error || '删除失败', 'error');
+                }
+            } catch (error) {
+                showToast('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        async function wakeDevice(mac) {
+            try {
+                showToast('正在发送唤醒信号...', 'success');
+
+                const response = await fetch(API.wake, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mac })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('✓ 唤醒信号已发送', 'success');
+                } else {
+                    showToast(data.error || '唤醒失败', 'error');
+                }
+            } catch (error) {
+                showToast('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        async function showImportModal() {
+            document.getElementById('importModal').classList.add('active');
+            selectedARPDevices.clear();
+            await loadARPDevices();
+        }
+
+        async function loadARPDevices() {
+            try {
+                const response = await fetch(API.import);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderARPDevices(data.data || []);
+                } else {
+                    showToast(data.error || '加载失败', 'error');
+                }
+            } catch (error) {
+                showToast('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        function renderARPDevices(devices) {
+            const container = document.getElementById('arpDeviceList');
+
+            if (devices.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#95a5a6;">暂无可导入设备</p>';
+                return;
+            }
+
+            container.innerHTML = devices.map(device => {
+                const exists = currentDevices.some(d => d.mac === device.mac);
+                return `
+                    <div class="device-item">
+                        <div class="device-info">
+                            <div class="device-name">
+                                <input type="checkbox" ${exists ? 'disabled' : `onchange="toggleARPDevice('${device.mac}')"`}>
+                                ${escapeHtml(device.ip || '未知IP')}
+                                ${exists ? '<span class="device-group">已添加</span>' : ''}
+                            </div>
+                            <div class="device-details">MAC: ${escapeHtml(device.mac.toUpperCase())}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleARPDevice(mac) {
+            if (selectedARPDevices.has(mac)) {
+                selectedARPDevices.delete(mac);
+            } else {
+                selectedARPDevices.add(mac);
+            }
+        }
+
+        async function importSelectedDevices() {
+            if (selectedARPDevices.size === 0) {
+                showToast('请选择要导入的设备', 'error');
+                return;
+            }
+
+            let success = 0;
+            for (const mac of selectedARPDevices) {
+                try {
+                    const response = await fetch(API.add, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: `设备 ${mac.substring(0, 8)}`,
+                            mac: mac
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) success++;
+                } catch (error) {
+                    console.error('Import failed for', mac, error);
+                }
+            }
+
+            showToast(`已导入 ${success} 个设备`, success > 0 ? 'success' : 'error');
+            closeModal('importModal');
+            loadDevices();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        loadDevices();
+    </script>
+</body>
+</html>
