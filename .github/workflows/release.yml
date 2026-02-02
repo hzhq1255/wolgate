@@ -23,13 +23,6 @@ jobs:
           go-version: 'stable'
           cache: true
 
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        id: import_gpg
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-
       - name: Extract version info
         id: version
         run: |
