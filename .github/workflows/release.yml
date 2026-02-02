@@ -65,27 +65,28 @@ jobs:
               output_name="${output_name}-v${goarm}"
             fi
 
-            # Set build flags
-            build_flags="-ldflags=-s -w -X main.Version=${VERSION}"
-            if [ "$goos" = "linux" ]; then
-              case "$goarch" in
-                arm*)
-                  build_flags="$build_flags -buildmode=pie"
-                  ;;
-                mips*)
-                  build_flags="$build_flags -ldflags=-checklinkname=0"
-                  ;;
-              esac
+            # Set ldflags
+            ldflags="-s -w -X main.Version=${VERSION}"
+            if [ "$goos" = "linux" ] && [[ "$goarch" == mips* ]]; then
+              ldflags="$ldflags -checklinkname=0"
             fi
 
             # Build
             echo "Building $output_name..."
+            build_args=()
+            build_args+=(-ldflags="$ldflags")
+            build_args+=(-o "dist/$output_name")
+
+            if [ "$goos" = "linux" ] && [[ "$goarch" == arm* ]]; then
+              build_args+=(-buildmode=pie)
+            fi
+
             if [ -n "$goarm" ]; then
               GOOS=$goos GOARCH=$goarch GOARM=$goarm CGO_ENABLED=0 \
-                go build $build_flags -o "dist/$output_name" .
+                go build "${build_args[@]}" .
             else
               GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
-                go build $build_flags -o "dist/$output_name" .
+                go build "${build_args[@]}" .
             fi
 
             # Create checksums
