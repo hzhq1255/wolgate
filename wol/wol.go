@@ -138,18 +138,6 @@ func (w *WOLSender) sendPacket(packet []byte) error {
 	var err error
 
 	if w.iface != "" {
-		// Bind to specific interface
-		addr := &net.UDPAddr{
-			IP:   net.IPv4zero,
-			Port: 0,
-		}
-
-		conn, err = net.ListenUDP("udp4", addr)
-		if err != nil {
-			return fmt.Errorf("failed to create UDP socket: %w", err)
-		}
-		defer conn.Close()
-
 		// Set the interface to use for sending
 		iface, err := net.InterfaceByName(w.iface)
 		if err != nil {
@@ -171,11 +159,21 @@ func (w *WOLSender) sendPacket(packet []byte) error {
 			}
 		}
 
-		if localIP != nil {
-			// Control the outgoing interface
-			// Note: This is a simplified approach; full control requires syscall-level operations
-			_ = localIP
+		if localIP == nil {
+			return fmt.Errorf("no suitable IPv4 address found on interface %s", w.iface)
 		}
+
+		// Bind to specific interface IP to control outgoing interface
+		addr := &net.UDPAddr{
+			IP:   localIP,
+			Port: 0,
+		}
+
+		conn, err = net.ListenUDP("udp4", addr)
+		if err != nil {
+			return fmt.Errorf("failed to create UDP socket on %s: %w", w.iface, err)
+		}
+		defer conn.Close()
 	} else {
 		// Bind to any available interface
 		addr := &net.UDPAddr{
