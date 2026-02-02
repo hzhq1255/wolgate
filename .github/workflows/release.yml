@@ -1,0 +1,154 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+
+      - name: Extract version info
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if pre-release
+          if [[ "$VERSION" =~ .*-.* ]]; then
+            echo "pre_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "pre_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -x
+          mkdir -p dist
+
+          # Build matrix
+          platforms=(
+            "linux:amd64"
+            "linux:386"
+            "linux:arm64"
+            "linux:arm:6"
+            "linux:arm:7"
+            "linux:mips"
+            "linux:mipsle"
+            "linux:mips64"
+            "linux:mips64le"
+          )
+
+          for item in "${platforms[@]}"; do
+            IFS=':' read -r goos goarch goarm <<< "$item"
+            output_name="wolgate-${VERSION}-${goos}-${goarch}"
+            if [ -n "$goarm" ]; then
+              output_name="${output_name}-v${goarm}"
+            fi
+
+            # Set build flags
+            build_flags="-ldflags '-s -w -X main.Version=${VERSION}'"
+            if [ "$goos" = "linux" ]; then
+              case "$goarch" in
+                arm*)
+                  build_flags="$build_flags -buildmode=pie"
+                  ;;
+                mips*)
+                  build_flags="$build_flags -ldflags '-checklinkname=0'"
+                  ;;
+              esac
+            fi
+
+            # Build
+            echo "Building $output_name..."
+            GOOS=$goos GOARCH=$goarch ${goarm:+GOARM=$goarm} CGO_ENABLED=0 \
+              go build $build_flags -o "dist/$output_name" .
+
+            # Create checksums
+            cd dist
+            sha256sum "$output_name" > "$output_name.sha256"
+            cd ..
+          done
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat > dist/release_notes.md << 'EOF'
+          ## Wolgate ${{ steps.version.outputs.version }}
+
+          ### Downloads
+          Choose the appropriate binary for your platform:
+
+          | Platform | Architecture | Binary |
+          |----------|-------------|--------|
+          | Linux | x86_64 | `wolgate-${{ steps.version.outputs.version }}-linux-amd64` |
+          | Linux | x86 (32-bit) | `wolgate-${{ steps.version.outputs.version }}-linux-386` |
+          | Linux | ARM64 | `wolgate-${{ steps.version.outputs.version }}-linux-arm64` |
+          | Linux | ARM v6 | `wolgate-${{ steps.version.outputs.version }}-linux-arm-v6` |
+          | Linux | ARM v7 | `wolgate-${{ steps.version.outputs.version }}-linux-arm-v7` |
+          | Linux | MIPS | `wolgate-${{ steps.version.outputs.version }}-linux-mips` |
+          | Linux | MIPS LE | `wolgate-${{ steps.version.outputs.version }}-linux-mipsle` |
+          | Linux | MIPS64 | `wolgate-${{ steps.version.outputs.version }}-linux-mips64` |
+          | Linux | MIPS64 LE | `wolgate-${{ steps.version.outputs.version }}-linux-mips64le` |
+
+          ### Installation
+
+          1. Download the binary for your platform
+          2. Verify the checksum: `sha256sum -c wolgate-*.sha256`
+          3. Make executable: `chmod +x wolgate-*`
+          4. Move to PATH: `sudo mv wolgate-* /usr/local/bin/wolgate`
+
+          ### Usage
+
+          Start web server:
+          ```bash
+          wolgate server -listen 0.0.0.0:9000 -data ./wolgate_data.json
+          ```
+
+          Send WOL packet:
+          ```bash
+          wolgate wake -mac AA:BB:CC:DD:EE:FF
+          ```
+
+          ### Full Changelog
+          https://github.com/hzhq1255/wolgate/compare/${{ steps.version.outputs.tag }}...HEAD
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Wolgate ${{ steps.version.outputs.version }}
+          body_path: dist/release_notes.md
+          prerelease: ${{ steps.version.outputs.pre_release }}
+          files: |
+            dist/wolgate-*
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
