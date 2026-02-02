@@ -14,6 +14,42 @@ Lightweight Wake-on-LAN gateway with web management interface.
 
 ## Installation
 
+### One-Line Install (Recommended)
+
+Automatically downloads and installs the latest release for your platform:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hzhq1255/wolgate/main/install/install.sh | bash
+```
+
+Or with wget:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/hzhq1255/wolgate/main/install/install.sh | bash
+```
+
+**Install script options:**
+
+```bash
+bash install/install.sh -d /usr/local/bin  # Install to custom directory
+bash install/install.sh -n                 # Skip SHA256 verification
+bash install/install.sh -v                 # Verbose output
+```
+
+**Supported platforms:**
+- Linux: x86_64, i386
+- Linux ARM: arm64, arm v6, arm v7
+- Linux MIPS: mips, mipsle, mips64, mips64le
+
+### Manual Binary Download
+
+Download the latest release from [Releases](https://github.com/hzhq1255/wolgate/releases).
+
+1. Download the binary for your platform
+2. Verify the checksum: `sha256sum -c wolgate-*.sha256`
+3. Make executable: `chmod +x wolgate-*`
+4. Move to PATH: `sudo mv wolgate-* /usr/local/bin/wolgate`
+
 ### From Source
 
 ```bash
@@ -21,10 +57,6 @@ git clone https://github.com/hzhq1255/wolgate.git
 cd wolgate
 go build -o wolgate .
 ```
-
-### Binary Download
-
-Download the latest release from [Releases](https://github.com/hzhq1255/wolgate/releases).
 
 ## Quick Start
 
