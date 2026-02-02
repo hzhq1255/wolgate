@@ -80,8 +80,13 @@ jobs:
 
             # Build
             echo "Building $output_name..."
-            GOOS=$goos GOARCH=$goarch ${goarm:+GOARM=$goarm} CGO_ENABLED=0 \
-              go build $build_flags -o "dist/$output_name" .
+            if [ -n "$goarm" ]; then
+              GOOS=$goos GOARCH=$goarch GOARM=$goarm CGO_ENABLED=0 \
+                go build $build_flags -o "dist/$output_name" .
+            else
+              GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
+                go build $build_flags -o "dist/$output_name" .
+            fi
 
             # Create checksums
             cd dist
