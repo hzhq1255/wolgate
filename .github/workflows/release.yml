@@ -66,14 +66,14 @@ jobs:
             fi
 
             # Set build flags
-            build_flags="-ldflags '-s -w -X main.Version=${VERSION}'"
+            build_flags="-ldflags=-s -w -X main.Version=${VERSION}"
             if [ "$goos" = "linux" ]; then
               case "$goarch" in
                 arm*)
                   build_flags="$build_flags -buildmode=pie"
                   ;;
                 mips*)
-                  build_flags="$build_flags -ldflags '-checklinkname=0'"
+                  build_flags="$build_flags -ldflags=-checklinkname=0"
                   ;;
               esac
             fi
