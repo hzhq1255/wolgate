@@ -77,10 +77,6 @@ jobs:
             build_args+=(-ldflags="$ldflags")
             build_args+=(-o "dist/$output_name")
 
-            if [ "$goos" = "linux" ] && [[ "$goarch" == arm* ]]; then
-              build_args+=(-buildmode=pie)
-            fi
-
             if [ -n "$goarm" ]; then
               GOOS=$goos GOARCH=$goarch GOARM=$goarm CGO_ENABLED=0 \
                 go build "${build_args[@]}" .
